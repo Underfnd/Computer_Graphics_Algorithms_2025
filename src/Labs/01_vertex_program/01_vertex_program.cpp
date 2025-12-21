@@ -25,6 +25,8 @@ static const char  *myProgramName = "01_vertex_program",
                    *myVertexProgramFileName = "C2E1v_green.cg",
 /* Page 38 */      *myVertexProgramName = "C2E1v_green";
 
+static int currentMode = 0;
+
 static void checkForCgError(const char *situation)
 {
   char buffer[4096];
@@ -66,6 +68,7 @@ static void checkForCgError(const char *situation)
 static HRESULT CALLBACK OnResetDevice(IDirect3DDevice9*, const D3DSURFACE_DESC*, void*);
 static void CALLBACK OnFrameRender(IDirect3DDevice9*, double, float, void*);
 static void CALLBACK OnLostDevice(void*);
+static void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext);
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -76,6 +79,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
   DXUTSetCallbackDeviceReset(OnResetDevice);
   DXUTSetCallbackDeviceLost(OnLostDevice);
   DXUTSetCallbackFrameRender(OnFrameRender);
+  DXUTSetCallbackKeyboard(OnKeyboard);
 
   /* Parse  command line, handle  default hotkeys, and show messages. */
   DXUTInit();
@@ -122,29 +126,36 @@ struct MY_V3F {
 
 static HRESULT initVertexBuffer(IDirect3DDevice9* pDev)
 {
-  /* Initialize three vertices for rendering a triangle. */
-  static const MY_V3F triangleVertices[] = {
-    { -0.8f,  0.8f, 0.0f },
-    {  0.8f,  0.8f, 0.0f },
-    {  0.0f, -0.8f, 0.0f }
-  };
+    /* Initialize vertices for rendering a 6-ray star. */
+    static const MY_V3F starVertices[] = {
+        // star's center (vertical 0)
+        { 0.0f, 0.0f, 0.0f },
 
-  if (FAILED(pDev->CreateVertexBuffer(sizeof(triangleVertices),
-                                      0, D3DFVF_XYZ,
-                                      D3DPOOL_DEFAULT,
-                                      &myVertexBuffer, NULL))) {
-    return E_FAIL;
-  }
+        // star's verticals
+        { 0.0f, 0.8f, 0.0f },   // top
+        { 0.7f, 0.4f, 0.0f },   // right top
+        { 0.4f, -0.7f, 0.0f },  // right bottom
+        { -0.4f, -0.7f, 0.0f }, // left bottom
+        { -0.7f, 0.4f, 0.0f },  // left top
+        { 0.0f, 0.8f, 0.0f }    // againt top
+    };
 
-  void* pVertices;
-  if (FAILED(myVertexBuffer->Lock(0, 0, /* map entire buffer */
-                                  &pVertices, 0))) {
-    return E_FAIL;
-  }
-  memcpy(pVertices, triangleVertices, sizeof(triangleVertices));
-  myVertexBuffer->Unlock();
+    if (FAILED(pDev->CreateVertexBuffer(sizeof(starVertices),
+        0, D3DFVF_XYZ,
+        D3DPOOL_DEFAULT,
+        &myVertexBuffer, NULL))) {
+        return E_FAIL;
+    }
 
-  return S_OK;
+    void* pVertices;
+    if (FAILED(myVertexBuffer->Lock(0, 0, /* map entire buffer */
+        &pVertices, 0))) {
+        return E_FAIL;
+    }
+    memcpy(pVertices, starVertices, sizeof(starVertices));
+    myVertexBuffer->Unlock();
+
+    return S_OK;
 }
 
 static HRESULT CALLBACK OnResetDevice(IDirect3DDevice9* pDev, 
@@ -173,28 +184,75 @@ static HRESULT CALLBACK OnResetDevice(IDirect3DDevice9* pDev,
 }
 
 static void CALLBACK OnFrameRender(IDirect3DDevice9* pDev,
-                                   double time,
-                                   float elapsedTime,
-                                   void* userContext)
+    double time,
+    float elapsedTime,
+    void* userContext)
 {
-  pDev->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
-              D3DXCOLOR(0.1f, 0.3f, 0.6f, 0.0f), 1.0f, 0);
+    pDev->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
+        D3DXCOLOR(0.1f, 0.1f, 0.1f, 0.0f), 1.0f, 0); // background color
 
-  if (SUCCEEDED(pDev->BeginScene())) {
-    cgD3D9BindProgram(myCgVertexProgram);
-    checkForCgError("binding vertex program");
+    if (SUCCEEDED(pDev->BeginScene())) {
+        cgD3D9BindProgram(myCgVertexProgram);
+        checkForCgError("binding vertex program");
 
-    /* Render the triangle. */
-    pDev->SetStreamSource(0, myVertexBuffer, 0, sizeof(MY_V3F));
-    pDev->SetFVF(D3DFVF_XYZ);
-    pDev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+        /* Render the star. */
+        pDev->SetStreamSource(0, myVertexBuffer, 0, sizeof(MY_V3F));
+        pDev->SetFVF(D3DFVF_XYZ);
 
-    pDev->EndScene();
-  }
+        if (currentMode == 0)
+        {
+            pDev->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 3); // Triangle Fan
+        }
+        else if (currentMode == 1)
+        {
+            pDev->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 4); // Triangle Fan
+        }
+        else if (currentMode == 2)
+        {
+            pDev->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 5); // Triangle Fan
+        }
+        else if (currentMode == 3)
+        {
+            pDev->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 6); // Triangle Fan
+        }
+        else if (currentMode == 4)
+        {
+            pDev->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 5); // Triangle Strip
+        }
+        else if (currentMode == 5)
+        {
+            pDev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 6); // Triangle List
+        }
+
+        pDev->EndScene();
+    }
 }
 
 static void CALLBACK OnLostDevice(void* userContext)
 {
   myVertexBuffer->Release();
   cgD3D9SetDevice(NULL);
+}
+
+static void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext)
+{
+    if (!bKeyDown) return; // handle only click on buttons
+
+    switch (nChar) {
+    case VK_ESCAPE:  // Esc
+        PostQuitMessage(0);
+        break;
+    case '1':
+        currentMode = 0;
+        break;
+    case '2':
+        currentMode = 1;
+        break;
+    case '3':
+        currentMode = 2;
+        break;
+    case VK_SPACE:
+        currentMode = (currentMode + 1) % 3;
+        break;
+    }
 }

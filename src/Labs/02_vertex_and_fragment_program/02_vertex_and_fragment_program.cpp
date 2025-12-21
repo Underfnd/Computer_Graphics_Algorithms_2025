@@ -1,4 +1,4 @@
-
+﻿
 /* 02_vertex_and_fragment_program.c - OpenGL-based very simple vertex program example
    using Cg program from Chapter 2 of "The Cg Tutorial" (Addison-Wesley,
    ISBN 0321194969). */
@@ -28,6 +28,8 @@ static const char *myProgramName = "02_vertex_and_fragment_program",
 /* Page 38 */     *myVertexProgramName = "C2E1v_green",
                   *myFragmentProgramFileName = "C2E2f_passthru.cg",
 /* Page 53 */     *myFragmentProgramName = "C2E2f_passthru";
+
+static int currentMode = 0;
 
 static void checkForCgError(const char *situation)
 {
@@ -70,6 +72,7 @@ static void checkForCgError(const char *situation)
 static HRESULT CALLBACK OnResetDevice(IDirect3DDevice9*, const D3DSURFACE_DESC*, void*);
 static void CALLBACK OnFrameRender(IDirect3DDevice9*, double, float, void*);
 static void CALLBACK OnLostDevice(void*);
+static void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext);
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -80,6 +83,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
   DXUTSetCallbackDeviceReset(OnResetDevice);
   DXUTSetCallbackDeviceLost(OnLostDevice);
   DXUTSetCallbackFrameRender(OnFrameRender);
+  DXUTSetCallbackKeyboard(OnKeyboard);
 
   /* Parse  command line, handle  default hotkeys, and show messages. */
   DXUTInit();
@@ -143,17 +147,29 @@ static const struct StarList {
   float x, y;
   int points;
   float outerRadius, innerRadius;
-} myStarList[] = {
-  /*                star    outer   inner  */
-  /*  x       y     Points  radius  radius */
-  /* =====   =====  ======  ======  ====== */
-  {  -0.1f,   0,     5,     0.5f,   0.2f },
-  {  -0.84f,  0.1f,  5,     0.3f,   0.12f },
-  {   0.92f, -0.5f,  5,     0.25f,  0.11f },
-  {   0.3f,   0.97f, 5,     0.3f,   0.1f },
-  {   0.94f,  0.3f,  5,     0.5f,   0.2f },
-  {  -0.97f, -0.8f,  5,     0.6f,   0.2f }
+} 
+
+//myStarList[] = {
+//    /*                star    outer   inner  */
+//    /*  x       y     Points  radius  radius */
+//    /* =====   =====  ======  ======  ====== */
+//    {  -0.1f,   0,     5,     0.5f,   0.2f },
+//    {  -0.84f,  0.1f,  5,     0.3f,   0.12f },
+//    {   0.92f, -0.5f,  5,     0.25f,  0.11f },
+//    {   0.3f,   0.97f, 5,     0.3f,   0.1f },
+//    {   0.94f,  0.3f,  5,     0.5f,   0.2f },
+//    {  -0.97f, -0.8f,  5,     0.6f,   0.2f }
+//};
+
+myStarList[] = {
+    /*                star    outer   inner  */
+    /*  x       y     Points  radius  radius */
+    /* =====   =====  ======  ======  ====== */
+    {   0.0f,   0,     5,     0.5f,   0.20f },
+    {  -0.70f,  0.1f,  4,     0.3f,   0.12f },
+    {   0.60f, -0.5f,  6,     0.25f,  0.11f }
 };
+
 static int myStarCount = sizeof(myStarList)/sizeof(myStarList[0]);
 
 struct MY_V3F {
@@ -248,33 +264,74 @@ static HRESULT CALLBACK OnResetDevice(IDirect3DDevice9* pDev,
 }
 
 static void CALLBACK OnFrameRender(IDirect3DDevice9* pDev,
-                                   double time,
-                                   float elapsedTime,
-                                   void* userContext)
+    double time,
+    float elapsedTime,
+    void* userContext)
 {
-  pDev->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
-              D3DXCOLOR(0.1f, 0.3f, 0.6f, 0.0f), 1.0f, 0);
+    pDev->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
+        D3DXCOLOR(0.1f, 0.1f, 0.1f, 0.0f), 1.0f, 0);
 
-  if (SUCCEEDED(pDev->BeginScene())) {
-    cgD3D9BindProgram(myCgVertexProgram);
-    checkForCgError("binding vertex program");
+    if (SUCCEEDED(pDev->BeginScene())) {
+        cgD3D9BindProgram(myCgVertexProgram);
+        checkForCgError("binding vertex program");
 
-    cgD3D9BindProgram(myCgFragmentProgram);
-    checkForCgError("binding fragment program");
+        cgD3D9BindProgram(myCgFragmentProgram);
+        checkForCgError("binding fragment program");
 
-    /* Render the stars. */
-    pDev->SetStreamSource(0, myVertexBuffer, 0, sizeof(MY_V3F));
-    pDev->SetFVF(D3DFVF_XYZ);
-    for (int i=0; i<myStarCount; i++) {
-      pDev->DrawPrimitive(D3DPT_TRIANGLEFAN, i*12, 10);
+        /* Render the stars. */
+        pDev->SetStreamSource(0, myVertexBuffer, 0, sizeof(MY_V3F));
+        pDev->SetFVF(D3DFVF_XYZ);
+
+        int vertexOffset = 0;
+        for (int i = 0; i < myStarCount; i++) {
+            int verticesPerStar = myStarList[i].points * 2 + 2;
+
+            switch (currentMode) {
+            case 0: // TRIANGLEFAN 
+                pDev->DrawPrimitive(D3DPT_TRIANGLEFAN, vertexOffset, verticesPerStar - 2);
+                break;
+
+            case 1: // TRIANGLELIST
+                pDev->DrawPrimitive(D3DPT_TRIANGLELIST, vertexOffset, (verticesPerStar - 2) / 3 * 3);
+                break;
+
+            case 2: // TRIANGLESTRIP
+                pDev->DrawPrimitive(D3DPT_TRIANGLESTRIP, vertexOffset, verticesPerStar - 2);
+                break;
+            }
+
+            vertexOffset += verticesPerStar;
+        }
+
+        pDev->EndScene();
     }
-
-    pDev->EndScene();
-  }
 }
 
 static void CALLBACK OnLostDevice(void* userContext)
 {
   myVertexBuffer->Release();
   cgD3D9SetDevice(NULL);
+}
+
+static void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext)
+{
+    if (!bKeyDown) return; // handle only click on buttons
+
+    switch (nChar) {
+    case VK_ESCAPE:  // Esc
+        PostQuitMessage(0);
+        break;
+    case '1':
+        currentMode = 0;
+        break;
+    case '2':
+        currentMode = 1;
+        break;
+    case '3':
+        currentMode = 2;
+        break;
+    case VK_SPACE:
+        currentMode = (currentMode + 1) % 3;
+        break;
+    }
 }
