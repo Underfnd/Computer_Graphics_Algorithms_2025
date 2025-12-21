@@ -1,0 +1,11 @@
+﻿  DXUT.cpp
+C:\University\Programming\Computer graphics algorithms\src\miniDXUT\DXUT.cpp(3216,13): warning C4996: 'GetVersionExW': was declared deprecated
+C:\University\Programming\Computer graphics algorithms\src\miniDXUT\DXUT.cpp(4730,124): warning C4838: conversion from 'UINT' to 'LONG' requires a narrowing conversion
+C:\University\Programming\Computer graphics algorithms\src\miniDXUT\DXUT.cpp(4730,180): warning C4838: conversion from 'UINT' to 'LONG' requires a narrowing conversion
+C:\University\Programming\Computer graphics algorithms\src\miniDXUT\DXUT.cpp(4731,128): warning C4838: conversion from 'UINT' to 'LONG' requires a narrowing conversion
+C:\University\Programming\Computer graphics algorithms\src\miniDXUT\DXUT.cpp(4731,188): warning C4838: conversion from 'UINT' to 'LONG' requires a narrowing conversion
+  DXUTenum.cpp
+  DXUTmisc.cpp
+C:\University\Programming\Computer graphics algorithms\src\miniDXUT\DXUTmisc.cpp(3113,81): warning C4996: 'GetVersionExA': was declared deprecated
+  Generating Code...
+  miniDXUT_2010.vcxproj -> C:\University\Programming\Computer graphics algorithms\src\miniDXUT\Debug\x64\miniDXUT.lib
