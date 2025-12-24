@@ -170,23 +170,6 @@ myStarList[] = {
     {   0.60f, -0.5f,  6,     0.25f,  0.11f }
 };
 
-StarList myTriangleListStarList[] = {
-    /*                star    outer   inner  */
-    /*  x       y     Points  radius  radius */
-    /* =====   =====  ======  ======  ====== */
-    {   0.0f,   0,     5,     0.3f,   0.15f },    // Уменьшил размер для Triangle List
-    {  -0.70f,  0.1f,  4,     0.25f,  0.12f },
-    {   0.60f, -0.5f,  6,     0.2f,   0.1f }
-};
-
-StarList myTriangleStripStarList[] = {
-    /*                star    outer   inner  */
-    /*  x       y     Points  radius  radius */
-    /* =====   =====  ======  ======  ====== */
-    {   0.0f,   0,     4,     0.3f,   0.15f },    // Для Triangle Strip лучше четное число лучей
-    {  -0.70f,  0.1f,  4,     0.25f,  0.12f },
-    {   0.60f, -0.5f,  4,     0.2f,   0.1f }
-};
 
 static int myStarCount = sizeof(myStarList)/sizeof(myStarList[0]);
 
@@ -203,7 +186,7 @@ static inline void writeVertex(MY_V3F &v, double x, double y)
 }
 
 static HRESULT initVertexBuffer(IDirect3DDevice9* pDev,
-                                int count, const StarList *list)
+                                int count, const StarList *list, int mode)
 {
   int vertexCount = 0;
 
@@ -278,7 +261,7 @@ static HRESULT CALLBACK OnResetDevice(IDirect3DDevice9* pDev,
   cgD3D9LoadProgram(myCgFragmentProgram, false, 0);
   checkForCgError("loading fragment program");
 
-  return initVertexBuffer(pDev, myStarCount, myStarList);
+  return initVertexBuffer(pDev, myStarCount, myStarList, currentMode);
 }
 
 static void CALLBACK OnFrameRender(IDirect3DDevice9* pDev,
@@ -310,7 +293,7 @@ static void CALLBACK OnFrameRender(IDirect3DDevice9* pDev,
                 break;
 
             case 1: // TRIANGLELIST
-                pDev->DrawPrimitive(D3DPT_TRIANGLELIST, vertexOffset, (verticesPerStar - 2) / 3 * 3);
+                pDev->DrawPrimitive(D3DPT_TRIANGLELIST, vertexOffset, (verticesPerStar - 2));
                 break;
 
             case 2: // TRIANGLESTRIP
